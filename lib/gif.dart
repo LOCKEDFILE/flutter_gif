@@ -309,8 +309,8 @@ class _GifState extends State<Gif> with SingleTickerProviderStateMixin {
         : widget.duration ?? gif.duration;
 
     if (duration == Duration.zero) {
-      duration =
-          Duration(milliseconds: (_frames.length / defualtFps * 1000).round());
+      duration = Duration(
+          milliseconds: (gif.frames.length / defualtFps * 1000).round());
     }
     setState(() {
       _frames = gif.frames;
