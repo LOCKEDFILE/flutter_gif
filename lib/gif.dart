@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 import 'package:http/http.dart';
 
 final Client _sharedHttpClient = Client();
+const defualtFps = 24;
 
 Client get _httpClient {
   Client client = _sharedHttpClient;
@@ -301,13 +302,18 @@ class _GifState extends State<Gif> with SingleTickerProviderStateMixin {
 
     if (widget.useCache)
       Gif.cache.caches.putIfAbsent(_getImageKey(widget.image), () => gif);
+    Duration duration;
+    duration = widget.fps != null
+        ? Duration(milliseconds: (_frames.length / widget.fps! * 1000).round())
+        : widget.duration ?? gif.duration;
 
+    if (duration == Duration.zero) {
+      duration =
+          Duration(milliseconds: (_frames.length / defualtFps * 1000).round());
+    }
     setState(() {
       _frames = gif.frames;
-      _controller.duration = widget.fps != null
-          ? Duration(
-              milliseconds: (_frames.length / widget.fps! * 1000).round())
-          : widget.duration ?? gif.duration;
+      _controller.duration = duration;
       if (widget.onFetchCompleted != null) {
         widget.onFetchCompleted!();
       }
