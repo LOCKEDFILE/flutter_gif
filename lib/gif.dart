@@ -295,8 +295,8 @@ class _GifState extends State<Gif> with SingleTickerProviderStateMixin {
     GifInfo gif = widget.useCache
         ? Gif.cache.caches.containsKey(_getImageKey(widget.image))
             ? Gif.cache.caches[_getImageKey(widget.image)]!
-            : await _fetchFrames(widget.image)
-        : await _fetchFrames(widget.image);
+            : await _computeFrames(widget.image)
+        : await _computeFrames(widget.image);
 
     if (!mounted) return;
 
@@ -320,40 +320,43 @@ class _GifState extends State<Gif> with SingleTickerProviderStateMixin {
     });
   }
 
-  /// Fetches the single gif frames and saves them into the [GifCache] of [Gif]
-  static Future<GifInfo> _fetchFrames(ImageProvider provider) async {
-    late final Uint8List bytes;
-
-    if (provider is NetworkImage) {
-      final Uri resolved = Uri.base.resolve(provider.url);
-      final Response response = await _httpClient.get(
-        resolved,
-        headers: provider.headers,
-      );
-      bytes = response.bodyBytes;
-    } else if (provider is AssetImage) {
-      AssetBundleImageKey key =
-          await provider.obtainKey(const ImageConfiguration());
-      bytes = (await key.bundle.load(key.name)).buffer.asUint8List();
-    } else if (provider is FileImage) {
-      bytes = await provider.file.readAsBytes();
-    } else if (provider is MemoryImage) {
-      bytes = provider.bytes;
-    }
-
-    final buffer = await ImmutableBuffer.fromUint8List(bytes);
-    Codec codec = await PaintingBinding.instance.instantiateImageCodecWithSize(
-      buffer,
-    );
-    List<ImageInfo> infos = [];
-    Duration duration = Duration();
-
-    for (int i = 0; i < codec.frameCount; i++) {
-      FrameInfo frameInfo = await codec.getNextFrame();
-      infos.add(ImageInfo(image: frameInfo.image));
-      duration += frameInfo.duration;
-    }
-
-    return GifInfo(frames: infos, duration: duration);
+  static Future<GifInfo> _computeFrames(ImageProvider provider) async {
+    return compute(_fetchFrames, provider);
   }
+}
+
+Future<GifInfo> _fetchFrames(ImageProvider provider) async {
+  late final Uint8List bytes;
+
+  if (provider is NetworkImage) {
+    final Uri resolved = Uri.base.resolve(provider.url);
+    final Response response = await _httpClient.get(
+      resolved,
+      headers: provider.headers,
+    );
+    bytes = response.bodyBytes;
+  } else if (provider is AssetImage) {
+    AssetBundleImageKey key =
+        await provider.obtainKey(const ImageConfiguration());
+    bytes = (await key.bundle.load(key.name)).buffer.asUint8List();
+  } else if (provider is FileImage) {
+    bytes = await provider.file.readAsBytes();
+  } else if (provider is MemoryImage) {
+    bytes = provider.bytes;
+  }
+
+  final buffer = await ImmutableBuffer.fromUint8List(bytes);
+  Codec codec = await PaintingBinding.instance.instantiateImageCodecWithSize(
+    buffer,
+  );
+  List<ImageInfo> infos = [];
+  Duration duration = Duration();
+
+  for (int i = 0; i < codec.frameCount; i++) {
+    FrameInfo frameInfo = await codec.getNextFrame();
+    infos.add(ImageInfo(image: frameInfo.image));
+    duration += frameInfo.duration;
+  }
+
+  return GifInfo(frames: infos, duration: duration);
 }
