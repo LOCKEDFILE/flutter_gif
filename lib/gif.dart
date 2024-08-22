@@ -8,6 +8,7 @@
 library gif;
 
 import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart';
@@ -345,10 +346,12 @@ Future<GifInfo> _fetchFrames(ImageProvider provider) async {
     bytes = provider.bytes;
   }
 
-  final buffer = await ImmutableBuffer.fromUint8List(bytes);
-  Codec codec = await PaintingBinding.instance.instantiateImageCodecWithSize(
-    buffer,
-  );
+  // final buffer = await ImmutableBuffer.fromUint8List(bytes);
+  final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+
+  // Codec codec = await PaintingBinding.instance.instantiateImageCodecWithSize(
+  //   buffer,
+  // );
   List<ImageInfo> infos = [];
   Duration duration = Duration();
 
